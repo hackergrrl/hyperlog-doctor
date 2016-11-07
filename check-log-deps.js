@@ -1,33 +1,40 @@
+// Reads all nodes and records what nodes they link to. Ensures that all nodes
+// linked to are present.
+
 var through = require('through2')
 var messages = require('hyperlog/lib/messages')
-var encoder = require('hyperlog/lib/encode')
 
 module.exports = function (log, done) {
-  var rs = db.createKeyStream({
+  var rs = db.createValueStream({
     gt: '!nodes!',
     lt: '!nodes!' + '~',
-    valueEncoding: 'utf-8'
+    valueEncoding: 'binary'
   })
 
   var nodes = {}
+  var links = []
 
   rs
-    .pipe(through(function (chunk, enc, next) {
-      var self = this
-      db.get(chunk, {valueEncoding: 'binary'}, function (err, buf) {
-        if (err) { console.error(err); return next() }
-        var node = messages.Node.decode(buf)
-        var value = encoder.decode(node.value, log.valueEncoding)
-        nodes[node.key] = node
-        node.links.forEach(self.push.bind(self))
-        next()
-      })
-    }))
-    .on('data', function (key) {
-      key = key.toString()
-      // TODO: nicer reporting
-      if (!nodes[key]) console.error(key)
+    .on('data', function (buf) {
+      var node = messages.Node.decode(buf)
+      nodes[node.key] = node
+      links = links.concat(node.links)
     })
-    .on('end', done)
+    .on('end', process)
+
+  function process () {
+    // filter out all good links, leaving only the ones that point to non-present nodes
+    links = links.filter(function (link) {
+      return !nodes[key]
+    })
+
+    if (links.length === 0) {
+      console.log('No missing nodes found.')
+    } else {
+      console.log('ERROR:', links.length, 'missing nodes found (linked to but not present).')
+    }
+
+    done()
+  }
 }
 

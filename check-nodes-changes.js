@@ -1,55 +1,58 @@
-var hyperlog = require('./')
-var level = require('level')
-var through = require('through2')
+// Checks whether all NODES appear in CHANGES, and vice versa.
 
-var messages = require('./lib/messages')
-var encoder = require('./lib/encode')
+var messages = require('hyperloglib/messages')
 
-if (process.argv.length !== 3) {
-  console.error('USAGE: check-nodes-changes <LEVEL-DIR>')
-  process.exit(1)
-}
+module.exports = function (log, done) {
+  var nodes = {}
+  var nodesNotChanges = []
+  var changesNotNodes = []
 
-var db = level(process.argv[2])
-var log = hyperlog(db)
+  log.createReadStream()
+    .on('data', function (node) {
+      nodes[node.key] = nodes
+    })
+    .on('end', matchNodes)
 
-var nodes = {}
+  function matchNodes () {
+    var rs = db.createValueStream({
+      gt: '!nodes!',
+      lt: '!nodes!' + '~',
+      valueEncoding: 'binary'
+    })
 
-log.createReadStream()
-  .on('data', function (node) {
-    nodes[node.key] = nodes
-  })
-  .on('end', matchNodes)
-
-function matchNodes () {
-  var rs = db.createKeyStream({
-    gt: '!nodes!',
-    lt: '!nodes!' + '~',
-    valueEncoding: 'utf-8'
-  })
-
-  rs
-    .on('data', function (chunk) {
-      var self = this
-      db.get(chunk, {valueEncoding: 'binary'}, function (err, buf) {
-        if (err) throw err
+    rs
+      .on('data', function (buf) {
         var node = messages.Node.decode(buf)
         if (nodes[node.key]) {
           nodes[node.key] = true
         } else {
-          console.log(node.key, 'exists in NODES but not CHANGES')
+          nodesNotChanges.push(node.key)
         }
       })
+      .on('end', done)
+  }
+
+  function done () {
+    // console.log('processed', Object.keys(nodes).length, 'nodes')
+
+    Object.keys(nodes).forEach(function (key) {
+      if (nodes[key] !== true) {
+        changesNotNodes.push(key)
+      }
     })
-    .on('end', done)
-}
 
-function done () {
-  console.log('processed', Object.keys(nodes).length, 'nodes')
-
-  Object.keys(nodes).forEach(function (key) {
-    if (nodes[key] !== true) {
-      console.log(key, 'exists in CHANGES but not NODES')
+    if (nodesNotChanges.length === 0) {
+      console.log('All NODES appear in CHANGES.')
+    } else {
+      console.log('ERROR:', nodesNotChanges.length, 'NODES don\'t appear in CHANGES.')
     }
-  })
+
+    if (changesNotNodes.length === 0) {
+      console.log('All CHANGES appear in NODES.')
+    } else {
+      console.log('ERROR:', changesNotNodes.length, 'CHANGES don\'t appear in NODES.')
+    }
+
+    done()
+  }
 }

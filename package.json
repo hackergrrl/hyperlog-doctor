@@ -20,6 +20,7 @@
   ],
   "dependencies": {
     "after-all": "^2.0.2",
+    "array-differ": "^2.0.3",
     "level": "^1.5.0",
     "lexicographic-integer": "^1.1.0",
     "run-waterfall": "^1.1.3",

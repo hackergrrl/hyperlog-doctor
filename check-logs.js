@@ -1,5 +1,4 @@
-var hyperlog = require('hyperlog')
-var through = require('through2')
+// Checks that the NODES and LOGS indexes match 1:1
 
 var messages = require('hyperloglib/messages')
 var encoder = require('hyperloglib/encode')
@@ -10,26 +9,20 @@ module.exports = function (log, done) {
   var logsNotNodes = 0
   var nodesNotLogs = 0
 
-  db.createKeyStream({
+  db.createValueStream({
     gt: '!nodes!',
     lt: '!nodes!' + '~',
-    valueEncoding: 'utf-8'
+    valueEncoding: 'binary'
   })
-    .on('data', function (chunk) {
-      var self = this
-      db.get(chunk, {valueEncoding: 'binary'}, function (err, buf) {
-        // TODO: better behaviour
-        if (err) throw err
-
-        var node = messages.Node.decode(buf)
-        nodes[node.key] = node
-        logs[node.log] = logs[node.log] || {}
-        var seq = node.seq.toString(16)
-        // console.log('seq', seq, node.seq)
-        logs[node.log][seq] = node
-      })
-    })
-    .on('end', checkLogs)
+  .on('data', function (buf) {
+    var node = messages.Node.decode(buf)
+    nodes[node.key] = node
+    logs[node.log] = logs[node.log] || {}
+    var seq = node.seq.toString(16)
+    // console.log('seq', seq, node.seq)
+    logs[node.log][seq] = node
+  })
+  .on('end', checkLogs)
 
   function checkLogs () {
     db.createKeyStream({
@@ -40,7 +33,7 @@ module.exports = function (log, done) {
     .on('data', function (chunk) {
       var self = this
       db.get(chunk, {valueEncoding: 'binary'}, function (err, buf) {
-        if (err) throw err
+        if (err) return
         var entry = messages.Entry.decode(buf)
         var log = chunk.toString().split('!')[2]
         var seq = parseInt(chunk.toString().split('!')[3], 16).toString(16)
@@ -59,7 +52,7 @@ module.exports = function (log, done) {
   }
 
   function fin () {
-    console.log('processed', Object.keys(nodes).length, 'nodes')
+    // console.log('processed', Object.keys(nodes).length, 'nodes')
 
     Object.keys(nodes).forEach(function (key) {
       if (nodes[key] !== true) {
@@ -68,9 +61,20 @@ module.exports = function (log, done) {
       }
     })
 
-    console.log(''+logsNotNodes, 'nodes in LOGS but not NODES')
-    console.log(''+nodesNotLogs, 'nodes in NODES but not LOGS')
+    if (logsNotNodes === 0) {
+      console.log('No nodes in LOGS but not NODES.')
+    } else {
+      console.log('ERROR:', logsNotNodes, 'nodes in LOGS but not NODES.')
+    }
 
-    done()
+    if (nodesNotLogs === 0) {
+      console.log('No nodes in NODES but not LOGS.')
+    } else {
+      console.log('ERROR:', nodesNotLogs, 'nodes in NODES but not LOGS.')
+    }
+
+    // this is a critical error; can't repair
+    done((logsNotNodes > 0 || nodesNotLogs > 0) ? true : undefined)
   }
 }
+
