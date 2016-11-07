@@ -5,7 +5,7 @@ var doctor = require('../')
 var path = require('path')
 
 function exit (msg) {
-  console.log(fs.readFileSync(path.join(__dirname, 'usage.txt').toString()))
+  console.log(fs.readFileSync(path.join(__dirname, 'usage.txt')).toString())
   console.log(msg)
   console.log()
   process.exit(1)
