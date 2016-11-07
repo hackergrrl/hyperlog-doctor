@@ -13,7 +13,13 @@
     "test": "tape test/*.js",
     "lint": "standard"
   },
-  "keywords": [],
+  "keywords": [
+    "hyperlog",
+    "doctor",
+    "repair",
+    "lint",
+    "hyper"
+  ],
   "pre-commit": [
     "lint",
     "test"
