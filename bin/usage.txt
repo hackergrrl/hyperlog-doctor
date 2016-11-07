@@ -1,0 +1,15 @@
+USAGE
+  hyperlog-doctor - lint and repair hyperlogs
+
+SUBCOMMANDS
+  hyperlog-doctor lint <LEVELDB>
+    Run various sanity checks on a hyperlog's LevelDB directory. A report will
+    be written to standard out.
+
+  hyperlog-doctor repair <LEVELDB>
+    Examine the LevelDB directory given and regenerate its HEADS and CHANGES
+    indexes.
+
+    WARNING: this operation is performed in-place and can be destructive if it
+             fails. Make a copy of the LevelDB directory before proceeding.
+
