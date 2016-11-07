@@ -29,10 +29,11 @@ module.exports.lint = function (dir) {
       checkNodesChanges(log, cb)
     }
   ], function (err, results) {
+    if (err) throw err
   })
 }
 
 module.exports.repair = function (dir) {
   var db = level(dir)
-  repair(db, function(){})
+  repair(db, function () {})
 }
