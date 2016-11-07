@@ -2,7 +2,7 @@
   "name": "hyperlog-doctor",
   "description": "cli tool for checking and repairing hyperlogs",
   "author": "Stephen Whitmore <stephen.whitmore@gmail.com>",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "repository": {
     "url": "git://github.com/noffle/hyperlog-doctor.git"
   },
