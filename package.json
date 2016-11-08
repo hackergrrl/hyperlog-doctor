@@ -2,7 +2,7 @@
   "name": "hyperlog-doctor",
   "description": "cli tool for checking and repairing hyperlogs",
   "author": "Stephen Whitmore <stephen.whitmore@gmail.com>",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "bin": {
     "hyperlog-doctor": "bin/cmd.js"
   },
